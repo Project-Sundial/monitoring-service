@@ -1,0 +1,53 @@
+services:
+  app:
+    image: projectsundial/app-server
+    tty: true
+    environment:
+      - NODE_ENV=production
+      - PORT=58669
+      - POSTGRES_HOST=db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+      - POSTGRES_DB=sundial
+      - SECRET=supersecretsundial
+    ports:
+      - 0.0.0.0:58669:58669
+    depends_on:
+      db:
+        condition: service_healthy
+    secrets:
+      - db-password
+  db:
+    image: postgres:alpine
+    restart: always
+    user: postgres
+    secrets:
+      - db-password
+    volumes:
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=sundial
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+      - POSTGRES_COLLATE=en_US.utf8
+    expose:
+      - 5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  ui:
+    image: projectsundial/ui
+    environment:
+      - API_URL=http://localhost:58669 # change this to your API hosting domain if necessary
+    ports:
+    - 3000:80
+    depends_on:
+      - app
+
+volumes:
+  db-data:
+secrets:
+  db-password:
+    file: ./database/password.txt
