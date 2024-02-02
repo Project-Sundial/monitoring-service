@@ -11,10 +11,21 @@ CREATE TABLE app_user (
 
 DROP TABLE IF EXISTS monitor;
 
+CREATE TABLE machine (
+  id serial, 
+  api_key_hash text NOT NULL,
+  created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+  name text DEFAULT 'machine',
+  prefix text NOT NULL,
+  ip text,
+  PRIMARY KEY (id)
+);
+
 CREATE TYPE types AS ENUM ('solo', 'dual');
 
 CREATE TABLE monitor (
   id serial,
+  machine_id integer NOT NULL,
   endpoint_key text UNIQUE NOT NULL,
   name text,
   schedule text NOT NULL,
@@ -25,31 +36,24 @@ CREATE TABLE monitor (
   tolerable_runtime int NOT NULL DEFAULT 25,
   grace_period int NOT NULL DEFAULT 5,
   type types NOT NULL DEFAULT 'solo',
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  FOREIGN KEY (machine_id) REFERENCES machine(id) ON DELETE CASCADE
 );
 
 DROP TABLE IF EXISTS run;
 
-CREATE TYPE states AS ENUM ('started', 'completed', 'failed', 'unresolved', 'no_start', 'solo_completed', 'missed', 'solo_missed');
+CREATE TYPE states AS ENUM ('started', 'completed', 'failed', 'unresolved', 'no_start', 'solo_completed', 'missed', 'solo_missed', 'overran');
 
 CREATE TABLE run (
   id serial,
   monitor_id integer NOT NULL,
-  run_token text,
+  run_token text UNIQUE,
   time timestamp NOT NULL,
   duration interval,
   state states NOT NULL,
+  error_log text,
   PRIMARY KEY (id),
   FOREIGN KEY (monitor_id) REFERENCES monitor(id) ON DELETE CASCADE
-);
-
-CREATE TABLE api_key (
-  id serial, 
-  api_key_hash text NOT NULL,
-  created_at timestamp DEFAULT CURRENT_TIMESTAMP,
-  name text DEFAULT 'server_api_key',
-  prefix text NOT NULL,
-  PRIMARY KEY (id)
 );
 
 CREATE PROCEDURE rotate_runs()
@@ -71,4 +75,3 @@ BEGIN ATOMIC
   WHERE id IN (SELECT id FROM selection);
 
 END;
-
