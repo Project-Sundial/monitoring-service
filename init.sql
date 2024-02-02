@@ -9,7 +9,7 @@ CREATE TABLE app_user (
   PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS monitor;
+DROP TABLE IF EXISTS machine;
 
 CREATE TABLE machine (
   id serial, 
@@ -20,6 +20,8 @@ CREATE TABLE machine (
   ip text,
   PRIMARY KEY (id)
 );
+
+DROP TABLE IF EXISTS monitor;
 
 CREATE TYPE types AS ENUM ('solo', 'dual');
 
